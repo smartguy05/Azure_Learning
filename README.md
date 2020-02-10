@@ -1,1 +1,1 @@
-Azure_Learning
+Azure Storage Tables
