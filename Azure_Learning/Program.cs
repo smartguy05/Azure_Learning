@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using StorageAccountTables.Models;
 
@@ -15,6 +16,7 @@ namespace StorageAccountTables
             IConfiguration config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appSettings.json", true, true)
+                .AddUserSecrets(Assembly.GetAssembly(typeof(Program)))
                 .Build();
 
             var settings = new AppSettings();
