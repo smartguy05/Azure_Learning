@@ -1,4 +1,4 @@
-﻿namespace StorageAccountTables.Models
+﻿namespace AzureLearning.Models
 {
     public class TableQueryParam
     {

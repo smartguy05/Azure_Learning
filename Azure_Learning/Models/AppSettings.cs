@@ -1,4 +1,4 @@
-﻿namespace StorageAccountTables.Models
+﻿namespace AzureLearning.Models
 {
     public class AppSettings
     {
@@ -10,6 +10,8 @@
     {
         public string Uri { get; set; }
         public string Key { get; set; }
+        public string CollectionName { get; set; }
+        public string DatabaseName { get; set; }
     }
 
     public class ConnectionStrings

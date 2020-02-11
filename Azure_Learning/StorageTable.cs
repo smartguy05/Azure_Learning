@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AzureLearning.Models;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
-using StorageAccountTables.Models;
 
-namespace StorageAccountTables
+namespace AzureLearning
 {
     public class StorageTable
     {
@@ -18,13 +18,13 @@ namespace StorageAccountTables
             ConfigureAzure();
         }
 
-        public async Task InsertNewItem<T>(T employee) where T : TableEntity
+        public async Task InsertNewItemAsync<T>(T employee) where T : TableEntity
         {
             var insertOp = TableOperation.Insert(employee);
             await _cloudTable.ExecuteAsync(insertOp);
         }
 
-        public async IAsyncEnumerable<T> QueryItem<T>(IEnumerable<TableQueryParam> filters) where T : TableEntity, new()
+        public async IAsyncEnumerable<T> QueryItemAsync<T>(IEnumerable<TableQueryParam> filters) where T : TableEntity, new()
         {
             var query = new TableQuery<T>();
 
@@ -50,9 +50,9 @@ namespace StorageAccountTables
             }
         }
 
-        public async Task DeleteItem<T>(IEnumerable<TableQueryParam> filters) where T : TableEntity, new()
+        public async Task DeleteItemAsync<T>(IEnumerable<TableQueryParam> filters) where T : TableEntity, new()
         {
-            var filteredItems = QueryItem<T>(filters);
+            var filteredItems = QueryItemAsync<T>(filters);
             var items = await filteredItems.ToListAsync();
 
             if (items.Any())

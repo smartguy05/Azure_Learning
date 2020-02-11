@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using StorageAccountTables.Models;
+using AzureLearning.Models;
+using Microsoft.Extensions.Configuration;
 
-namespace StorageAccountTables
+namespace AzureLearning
 {
     public class Program
     {
+        private const string TestingName = "Anthony";
+        private const string TestingLastName = "Smith";
+
         private static async Task Main(string[] args)
         {
             // Setup
@@ -23,17 +27,24 @@ namespace StorageAccountTables
             config.Bind(settings);
 
             // await TestAzureStorageTables(settings);
+            await TestAzureCosmosDb(settings);
         }
 
         private static async Task TestAzureStorageTables(AppSettings settings)
         {
-            var testingName = "Aiden";
-            var testingLastName = "Heusler";
             var storageTables = new StorageTable(settings);
 
             // Create employees
             Console.WriteLine("Adding new employees");
-            await CreateNewEmployees(storageTables);
+            var employeesToAdd = CreateNewEmployees(3);
+            var insertTasks = new List<Task>();
+
+            await foreach (var emp in employeesToAdd)
+            {
+                insertTasks.Add(storageTables.InsertNewItemAsync(emp));
+            }
+
+            await Task.WhenAll(insertTasks);
 
             // Query employees
             var tableParams = new List<TableQueryParam>
@@ -41,11 +52,11 @@ namespace StorageAccountTables
                 new TableQueryParam
                 {
                     Name = "FirstName",
-                    Value = testingName
+                    Value = TestingName
                 }
             };
-            var employees = storageTables.QueryItem<EmployeeEntity>(tableParams);
-            Console.WriteLine($"All staff with name {testingName}:");
+            var employees = storageTables.QueryItemAsync<EmployeeEntity>(tableParams);
+            Console.WriteLine($"All staff with name {TestingName}:");
             Console.WriteLine("=====================================");
             await foreach (var employee in employees)
             {
@@ -55,21 +66,21 @@ namespace StorageAccountTables
             Console.WriteLine();
 
             //Delete employee
-            Console.WriteLine($"Deleting employee with first name {testingName} and last name James");
+            Console.WriteLine($"Deleting employee with first name {TestingName} and last name {TestingLastName}");
             tableParams = new List<TableQueryParam>
             {
                 new TableQueryParam
                 {
                     Name = "FirstName",
-                    Value = testingName
+                    Value = TestingName
                 },
                 new TableQueryParam
                 {
                     Name =  "LastName",
-                    Value = testingLastName
+                    Value = TestingLastName
                 }
             };
-            await storageTables.DeleteItem<EmployeeEntity>(tableParams);
+            await storageTables.DeleteItemAsync<EmployeeEntity>(tableParams);
             Console.WriteLine("Employee deleted");
 
             Console.WriteLine();
@@ -80,11 +91,11 @@ namespace StorageAccountTables
                 new TableQueryParam
                 {
                     Name = "FirstName",
-                    Value = testingName
+                    Value = TestingName
                 }
             };
-            employees = storageTables.QueryItem<EmployeeEntity>(tableParams);
-            Console.WriteLine($"All staff with name {testingName}:");
+            employees = storageTables.QueryItemAsync<EmployeeEntity>(tableParams);
+            Console.WriteLine($"All staff with name {TestingName}:");
             Console.WriteLine("=====================================");
             await foreach (var employee in employees)
             {
@@ -92,21 +103,86 @@ namespace StorageAccountTables
             }
         }
 
-        public static async Task CreateNewEmployees(StorageTable table)
+        private static async IAsyncEnumerable<EmployeeEntity> CreateNewEmployees(int numberToCreate)
         {
             var firstNames = new[] { "Anthony", "Jennifer", "Aiden", "Alex", "Aaron", "Archer" };
             var lastNames = new[] { "James", "Smith", "Jones", "Lowderman", "Heusler", "Bonaparte" };
             var random = new Random();
 
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < numberToCreate; i++)
             {
                 var randomFirstName = firstNames[random.Next(firstNames.Length)];
                 var randomLastName = lastNames[random.Next(lastNames.Length)];
 
-                var employee1 = new EmployeeEntity(randomFirstName, randomLastName);
-
-                await table.InsertNewItem(employee1);
+                yield return new EmployeeEntity(randomFirstName, randomLastName);
             }
+        }
+
+        private static async Task TestAzureCosmosDb(AppSettings settings)
+        {
+            var cosmosDb = new AzureCosmosDb(settings);
+
+            // create objects to insert
+            Console.WriteLine("Adding new employees");
+
+            // insert objects
+            // var insertTasks = new List<Task>();
+            // var employeesToInsert = CreateNewEmployees(10);
+            // await foreach (var emp in employeesToInsert)
+            // {
+            //     insertTasks.Add(cosmosDb.InsertItemAsync(emp));
+            // }
+            //
+            // await Task.WhenAll(insertTasks);
+            //
+            // var employeeToInsert = new EmployeeEntity(TestingName, TestingLastName);
+            // await cosmosDb.InsertItemAsync(employeeToInsert);
+
+            Console.WriteLine();
+
+            // all employees
+            var employees = cosmosDb.QueryItem<EmployeeEntity>();
+
+            Console.WriteLine("All staff");
+            Console.WriteLine("=====================================");
+            foreach (var employee in employees)
+            {
+                Console.WriteLine($"{employee.FirstName} {employee.LastName}");
+            }
+
+            Console.WriteLine();
+
+            // all employees with name {TestingName}
+            employees = cosmosDb.QueryItem<EmployeeEntity>(w => w.FirstName == TestingName);
+
+            Console.WriteLine($"All staff with the first name {TestingName}");
+            Console.WriteLine("=====================================");
+            foreach (var employee in employees)
+            {
+                Console.WriteLine($"{employee.FirstName} {employee.LastName}");
+            }
+
+            Console.WriteLine();
+
+            //Delete employee
+            Console.WriteLine($"Deleting employee with first name {TestingName} and last name {TestingLastName}");
+            await cosmosDb.DeleteItemAsync<EmployeeEntity>(w => w.FirstName == TestingName && w.LastName == TestingLastName, TestingLastName);
+
+            Console.WriteLine($"Employee {TestingName} {TestingLastName} deleted");
+
+            Console.WriteLine();
+
+            // all employees
+            employees = cosmosDb.QueryItem<EmployeeEntity>();
+
+            Console.WriteLine("All staff");
+            Console.WriteLine("=====================================");
+            foreach (var employee in employees)
+            {
+                Console.WriteLine($"{employee.FirstName} {employee.LastName}");
+            }
+
+            Console.WriteLine();
         }
     }
 }
