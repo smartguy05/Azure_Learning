@@ -22,7 +22,6 @@ namespace AzureLearning.Models
         public EmployeeEntity(string firstName, string lastName)
         {
             PartitionKey = "/LastName";
-            RowKey = Guid.NewGuid().ToString();
             FirstName = firstName;
             LastName = lastName;
             Id = Guid.NewGuid().ToString();

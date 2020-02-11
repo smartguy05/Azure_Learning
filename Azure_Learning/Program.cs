@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using AzureLearning.Models;
 using Microsoft.Extensions.Configuration;
@@ -124,20 +125,20 @@ namespace AzureLearning
 
             // create objects to insert
             Console.WriteLine("Adding new employees");
-
+            
             // insert objects
-            // var insertTasks = new List<Task>();
-            // var employeesToInsert = CreateNewEmployees(10);
-            // await foreach (var emp in employeesToInsert)
-            // {
-            //     insertTasks.Add(cosmosDb.InsertItemAsync(emp));
-            // }
-            //
-            // await Task.WhenAll(insertTasks);
-            //
-            // var employeeToInsert = new EmployeeEntity(TestingName, TestingLastName);
-            // await cosmosDb.InsertItemAsync(employeeToInsert);
+            var insertTasks = new List<Task>();
+            var employeeToInsert = new EmployeeEntity(TestingName, TestingLastName);
+            var employeesToInsert = CreateNewEmployees(3);
 
+            insertTasks.Add(cosmosDb.InsertAsync(employeeToInsert));
+            await foreach (var emp in employeesToInsert)
+            {
+                insertTasks.Add(cosmosDb.InsertAsync(emp));
+            }
+            
+            await Task.WhenAll(insertTasks);
+            
             Console.WriteLine();
 
             // all employees
@@ -166,22 +167,29 @@ namespace AzureLearning
 
             //Delete employee
             Console.WriteLine($"Deleting employee with first name {TestingName} and last name {TestingLastName}");
-            await cosmosDb.DeleteItemAsync<EmployeeEntity>(w => w.FirstName == TestingName && w.LastName == TestingLastName, TestingLastName);
+            var deleteEmployee =
+                cosmosDb.QueryItem<EmployeeEntity>(w => w.FirstName == TestingName && w.LastName == TestingLastName)
+                    .FirstOrDefault();
+
+            if (deleteEmployee != null)
+            {
+                await cosmosDb.DeleteAsync(deleteEmployee, CancellationToken.None);
+            }
 
             Console.WriteLine($"Employee {TestingName} {TestingLastName} deleted");
-
+            
             Console.WriteLine();
-
+            
             // all employees
             employees = cosmosDb.QueryItem<EmployeeEntity>();
-
+            
             Console.WriteLine("All staff");
             Console.WriteLine("=====================================");
             foreach (var employee in employees)
             {
                 Console.WriteLine($"{employee.FirstName} {employee.LastName}");
             }
-
+            
             Console.WriteLine();
         }
     }

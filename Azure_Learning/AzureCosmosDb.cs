@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AzureLearning.Models;
-using Microsoft.Azure.Documents;
-using Microsoft.Azure.Documents.Client;
 using Microsoft.WindowsAzure.Storage.Table;
 
 namespace AzureLearning
@@ -12,75 +11,67 @@ namespace AzureLearning
     public class AzureCosmosDb
     {
         private readonly AppSettings _settings;
-        private DocumentClient _documentClient;
-        private readonly Uri _collectionUri;
-        private readonly FeedOptions _queryOptions;
 
         public AzureCosmosDb(AppSettings settings)
         {
             _settings = settings;
-            _documentClient = new DocumentClient(new Uri(settings.CosmosDb.Uri), settings.CosmosDb.Key);
-            _collectionUri =
-                UriFactory.CreateDocumentCollectionUri(_settings.CosmosDb.DatabaseName,
-                    _settings.CosmosDb.CollectionName);
-
-            _queryOptions = new FeedOptions
+            using (var context = new CosmosDbContext(settings))
             {
-                MaxItemCount = -1,
-                EnableCrossPartitionQuery = true
-            };
-        }
-
-        public async Task InsertItemAsync<T>(T item) where T : TableEntity, ITableEntry
-        {
-            // using (var context = new CosmosDbContext(_settings))
-            // {
-            //     await context.Database.EnsureCreatedAsync();
-            //     context.Add(item);
-            //     await context.SaveChangesAsync();
-            // }
-
-            var result = await _documentClient.CreateDocumentAsync(_collectionUri, item);
-        }
-
-        public IEnumerable<T> QueryItem<T>(Func<T, bool> filter = null)
-        {
-            var entries = _documentClient.CreateDocumentQuery<T>(_collectionUri, _queryOptions);
-
-            return filter != null
-                ? entries.Where(filter)
-                : entries;
-        }
-
-        public async Task DeleteItemAsync<T>(Func<T, bool> filter, string partitionFilter) where T : TableEntity, ITableEntry
-        {
-            var entry = QueryItem(filter).FirstOrDefault();
-
-            if (entry == null)
-            {
-                return;
+                context.Database.EnsureCreated();
             }
-            var partitionKey = new PartitionKey(partitionFilter);
-            var requestOptions = new RequestOptions
+        }
+
+        public async Task InsertAsync<T>(T item) where T: TableEntity, ITableEntry
+        {
+            using (var context = new CosmosDbContext(_settings))
             {
-                PartitionKey = partitionKey
-            };
-
-            var document = GetDocument(entry.Id);
-
-            var delete = await _documentClient.DeleteDocumentAsync(entry.DocumentLink);
+                context.Add(item);
+                await context.SaveChangesAsync();
+            }
         }
 
-        private Uri GetDocumentLink(string id)
+        public IEnumerable<T> QueryItem<T>(Func<T, bool> filter = null) where T: TableEntity, ITableEntry
         {
-            return UriFactory.CreateDocumentUri(_settings.CosmosDb.DatabaseName, _settings.CosmosDb.CollectionName, id);
+            using (var context = new CosmosDbContext(_settings))
+            {
+                var dbSet = context.Set<T>().AsEnumerable();
+
+                return filter != null
+                    ? dbSet?.Where(filter).ToList()
+                    : dbSet.ToList();
+            }
         }
 
-        private Document GetDocument(string id)
+        public async Task<bool> DeleteAsync<T>(string id, CancellationToken token) where T : TableEntity, ITableEntry
         {
-            return _documentClient.CreateDocumentQuery(_collectionUri, _queryOptions)
-                .AsEnumerable()
-                .FirstOrDefault(w => w.Id == id);
+            using (var context = new CosmosDbContext(_settings))
+            {
+                var dbSet = context.Set<T>();
+                var entry = await dbSet.FirstOrDefaultAsync(w => w.Id == id, token);
+                context.Remove(entry);
+                return await context.SaveChangesAsync(token) == 1;
+            }
+        }
+
+        public async Task<bool> DeleteAsync<T>(T item, CancellationToken token) where T : TableEntity, ITableEntry
+        {
+            using (var context = new CosmosDbContext(_settings))
+            {
+                var dbSet = context.Set<T>();
+                var entry = await dbSet.FirstOrDefaultAsync(w => w.Id == item.Id, token);
+                context.Remove(entry);
+                return await context.SaveChangesAsync(token) == 1;
+            }
+        }
+
+        public async Task<bool> DeleteManyAsync<T>(IEnumerable<T> items, CancellationToken token) where T: TableEntity, ITableEntry
+        {
+            using (var context = new CosmosDbContext(_settings))
+            {
+                context.AttachRange(items);
+                context.RemoveRange(items);
+                return await context.SaveChangesAsync(token) == items.Count();
+            }
         }
     }
 }
