@@ -1,4 +1,6 @@
-﻿namespace AzureLearning.Models
+﻿using System.Security.Permissions;
+
+namespace AzureLearning.Models
 {
     public class AppSettings
     {
@@ -17,6 +19,7 @@
     public class ConnectionStrings
     {
         public string DefaultConnection { get; set; }
-        public string StorageTables { get; set; }
+        public string CosmosDb { get; set; }
+        public string SqlDb { get; set; }
     }
 }

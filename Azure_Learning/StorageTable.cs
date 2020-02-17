@@ -24,7 +24,7 @@ namespace AzureLearning
             await _cloudTable.ExecuteAsync(insertOp);
         }
 
-        public async IAsyncEnumerable<T> QueryItemAsync<T>(IEnumerable<TableQueryParam> filters) where T : TableEntity, new()
+        public async IAsyncEnumerable<T> QueryItemAsync<T>(IEnumerable<TableQueryParam> filters = null) where T : TableEntity, new()
         {
             var query = new TableQuery<T>();
 
@@ -71,7 +71,7 @@ namespace AzureLearning
 
         private void ConfigureAzure()
         {
-            var storageAccount = CloudStorageAccount.Parse(_settings.ConnectionStrings.StorageTables);
+            var storageAccount = CloudStorageAccount.Parse(_settings.ConnectionStrings.CosmosDb);
             var tableClient = storageAccount.CreateCloudTableClient();
             _cloudTable = tableClient.GetTableReference("Employees");
         }

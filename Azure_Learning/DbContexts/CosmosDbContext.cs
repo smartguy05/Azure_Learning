@@ -1,9 +1,9 @@
 ﻿using AzureLearning.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AzureLearning
+namespace AzureLearning.DbContexts
 {
-    public class CosmosDbContext: DbContext
+    public class CosmosDbContext : DbContext
     {
         private readonly AppSettings _settings;
 

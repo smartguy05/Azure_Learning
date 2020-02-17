@@ -1,10 +1,11 @@
 ﻿using System;
+using AzureLearning.Interfaces;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 
 namespace AzureLearning.Models
 {
-    public class EmployeeEntity : TableEntity, ITableEntry
+    public class EmployeeEntity : TableEntity, ITableEntry, IEmployee, ISqlEntry
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
@@ -13,10 +14,12 @@ namespace AzureLearning.Models
         public string DocumentLink { get; set; }
 
         [JsonProperty("id")]
-        public string Id { get; set; }
+        public Guid Id { get; set; }
 
         public EmployeeEntity()
         {
+            PartitionKey = "/LastName";
+            Id = Guid.NewGuid();
         }
 
         public EmployeeEntity(string firstName, string lastName)
@@ -24,13 +27,7 @@ namespace AzureLearning.Models
             PartitionKey = "/LastName";
             FirstName = firstName;
             LastName = lastName;
-            Id = Guid.NewGuid().ToString();
+            Id = Guid.NewGuid();
         }
-    }
-
-    public interface ITableEntry
-    {
-        public string Id { get; set; }
-        public string DocumentLink { get; set; }
     }
 }
