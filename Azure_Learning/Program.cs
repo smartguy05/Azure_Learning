@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using AzureLearning.Interfaces;
 using AzureLearning.Models;
 using Microsoft.Extensions.Configuration;
-using Microsoft.WindowsAzure.Storage.Table;
 
 namespace AzureLearning
 {
