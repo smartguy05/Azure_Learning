@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 namespace AzureLearningWeb.ApiControllers
 {
     [Route("api/v1/[controller]")]
-    [Authorize(Policy = "ApiKeyPolicy")]
+    [Authorize(Policy = "ApiKey")]
     [ApiController]
     public class SettingsController : ControllerBase
     {
+        private readonly AppSettings _settings;
+
         public SettingsController(AppSettings settings)
         {
             _settings = settings;
@@ -20,7 +22,5 @@ namespace AzureLearningWeb.ApiControllers
         {
             return _settings;
         }
-
-        private readonly AppSettings _settings;
     }
 }

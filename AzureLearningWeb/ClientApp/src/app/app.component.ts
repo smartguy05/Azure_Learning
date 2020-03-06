@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ConfigService as ConfigService1 } from '@services/config.service';
+import { ConfigService } from '@services/config.service';
 
 @Component({
   selector: 'app-root',
@@ -8,12 +8,9 @@ import { ConfigService as ConfigService1 } from '@services/config.service';
 export class AppComponent implements OnInit {
   public title = 'app';
 
-  constructor(private readonly configService: ConfigService1) {
+  constructor(private readonly configService: ConfigService) {
   }
 
   public ngOnInit() {
-    this.configService.appSettings
-      .subscribe(result => console.log(result));
-    ;
   }
 }

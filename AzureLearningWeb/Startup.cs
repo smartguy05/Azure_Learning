@@ -1,6 +1,5 @@
 using AzureLearning.Models;
 using AzureLearningWeb.Security;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -9,11 +8,13 @@ using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AzureLearningWeb
 {
     public class Startup
     {
+        private readonly AppSettings _appSettings;
         public IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration)
@@ -74,16 +75,34 @@ namespace AzureLearningWeb
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton(_appSettings);
-            services.AddTransient<IAuthorizationHandler, ApiKeyPolicy>();
+            services.AddHttpContextAccessor();
 
-            services.AddAuthorization(config =>
+            services.AddAuthorization(options =>
             {
-                config.AddPolicy("ApiKeyPolicy", policy =>
-                    policy.AddRequirements(new ApiKeyRequirement(_appSettings)));
+                options.AddPolicy("ApiKey", policy =>
+                {
+                    policy.Requirements.Add(new ApiKeyRequirement(_appSettings));
+                });
             });
 
-            services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
-                .AddAzureADBearer(options => Configuration.Bind("AzureActiveDirectory", options));
+            services.AddTransient<IAuthorizationHandler, ApiKeyHandler>();
+
+            services
+                .AddAuthentication(AzureADDefaults.AuthenticationScheme)
+                .AddJwtBearer("AzureAD", options =>
+                {
+                    options.Audience = "ActiveDirectory:Audience";
+                    options.Authority = "ActiveDirectory:Instance";
+                    options.RequireHttpsMetadata = false;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidIssuer = "ActiveDirectory:Instance",
+                        ValidAudience = "ActiveDirectory:Audience"
+                    };
+                });
+
+            // .AddAzureADBearer(options => Configuration.Bind("AzureActiveDirectory", options));
 
             services.AddCors(options =>
             {
@@ -103,7 +122,5 @@ namespace AzureLearningWeb
                 configuration.RootPath = "ClientApp/dist";
             });
         }
-
-        private readonly AppSettings _appSettings;
     }
 }

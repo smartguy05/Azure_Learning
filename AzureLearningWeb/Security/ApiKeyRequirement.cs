@@ -7,11 +7,16 @@ namespace AzureLearningWeb.Security
 {
     public class ApiKeyRequirement : IAuthorizationRequirement
     {
-        public IReadOnlyList<string> ApiKeys { get; set; }
+        private List<string> ApiKeys { get; set; }
 
-        public ApiKeyRequirement(AppSettings appSettings)
+        public ApiKeyRequirement(AppSettings settings)
         {
-            ApiKeys = appSettings.ApiKeys.ToList();
+            ApiKeys = settings.ApiKeys.ToList();
+        }
+
+        public bool IsValidApiKey(string apiKey)
+        {
+            return ApiKeys.Contains(apiKey);
         }
     }
 }
